@@ -150,6 +150,11 @@ EOF
 echo "========================================================================="
 echo " CONFIGURATION REBUILD COMPLETE! "
 echo " Restarting the database to apply changes..."
-/usr/pgsql-${PG_VERSION}/bin/pg_ctl restart -D ${CONFIG_DIR}
+# Dynamically parse the major version out of the argument (e.g., '16.3' -> '16')
+PG_MAJOR=$(echo "${PG_VERSION}" | cut -d'.' -f1)
+
+# Restart using the absolute binary path and discovered config directory
+/usr/pgsql-${PG_MAJOR}/bin/pg_ctl restart -D "${CONFIG_DIR}"
+
 echo " Database successfully restarted and ready for schema deployments!"
 echo "========================================================================="

@@ -3,74 +3,72 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
-PG_VERSION=$1
+INPUT_VERSION=$1
+
+# 1. Dynamically parse Major vs. Specific Minor versions
+if [[ "$INPUT_VERSION" == *.* ]]; then
+    PG_MAJOR=$(echo "$INPUT_VERSION" | cut -d'.' -f1)
+    PG_FULL="$INPUT_VERSION"
+else
+    PG_MAJOR="$INPUT_VERSION"
+    PG_FULL="$INPUT_VERSION*" 
+fi
 
 echo "================================================================="
 echo " Starting Post-Provisioning Environment Setup..."
-echo " Target PostgreSQL Version: ${PG_VERSION}"
+echo " Target Major Version (Paths): ${PG_MAJOR}"
+echo " Target Package Constraint:    ${PG_FULL}"
 echo "================================================================="
 
 # --- Step 1: Install PostgreSQL Repositories ---
-echo "Installing PostgreSQL ${PG_VERSION} repository..."
+echo "Installing PostgreSQL repository..."
 dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-9-x86_64/pgdg-redhat-repo-latest.noarch.rpm
 
 echo "Disabling built-in PostgreSQL dnf module..."
 dnf -qy module disable postgresql
 
+# --- Step 2: Install & Initialize PostgreSQL with explicit matching ---
+echo "Installing PostgreSQL server packages matching version: ${PG_FULL}..."
+dnf install -y postgresql${PG_MAJOR}-server-${PG_FULL} postgresql${PG_MAJOR}-contrib-${PG_FULL}
 
-# --- Step 2: Install & Initialize PostgreSQL ---
-echo "Installing PostgreSQL ${PG_VERSION} server packages..."
-dnf install -y postgresql${PG_VERSION}-server postgresql${PG_VERSION}-contrib
-
-echo "Initializing PostgreSQL ${PG_VERSION} database..."
-/usr/pgsql-${PG_VERSION}/bin/postgresql-${PG_VERSION}-setup initdb
-
+echo "Initializing PostgreSQL ${PG_MAJOR} database..."
+/usr/pgsql-${PG_MAJOR}/bin/postgresql-${PG_MAJOR}-setup initdb
 
 # --- Step 3: Configure and Start PostgreSQL Service ---
-echo "Starting and enabling PostgreSQL ${PG_VERSION} service..."
-systemctl enable --now postgresql-${PG_VERSION}
+echo "Starting and enabling PostgreSQL ${PG_MAJOR} service..."
+systemctl enable --now postgresql-${PG_MAJOR}
 
-
-# --- Step 4: OpenSSH Client & Server Compatibility Fix (Run Last) ---
-echo "PostgreSQL installed. Applying OpenSSH compatibility fix to reset library matches..."
-# Reinstall and update to ensure clean, compatible modern SSH libraries post-Postgres setup
+# --- Step 4: OpenSSH Client & Server Compatibility Fix ---
+echo "Applying OpenSSH compatibility fix..."
 sudo dnf reinstall openssh-clients openssh-server -y
 sudo dnf update openssh-clients openssh-server -y
-
-# Restart SSH service to apply any updated security parameters/libraries
 sudo systemctl restart sshd
-echo "OpenSSH libraries updated and service restarted successfully."
 
-echo "================================================================="
-echo " PostgreSQL ${PG_VERSION} installation & SSH reset completed successfully!"
-echo "================================================================="
+# --- Step 5: Install Version-Locked Extensions ---
+echo "Installing pg_wait_sampling matching PostgreSQL ${PG_MAJOR}..."
+dnf install -y pg_wait_sampling_${PG_MAJOR}*
 
-# --- Step 3.5: Install pg_wait_sampling, pg_cron & pgBadger ---
-echo "Installing pg_wait_sampling for PostgreSQL ${PG_VERSION}..."
-dnf install -y pg_wait_sampling_${PG_VERSION}
+echo "Installing pg_cron matching PostgreSQL ${PG_MAJOR}..."
+dnf install -y pg_cron_${PG_MAJOR}*
 
-sudo dnf install -y pg_cron_${PG_VERSION}
-
+# --- Step 6: Install Independent Tooling (pgBadger) ---
 echo "Downloading and installing pgBadger v13.2..."
-# Download to /tmp to keep the home directory clean
 curl -L https://github.com/darold/pgbadger/archive/refs/tags/v13.2.tar.gz -o /tmp/pgbadger.tar.gz
-
-# Extract and install pgBadger
 tar -zxvf /tmp/pgbadger.tar.gz -C /tmp/
 sudo cp /tmp/pgbadger-13.2/pgbadger /usr/local/bin/
 sudo chmod +x /usr/local/bin/pgbadger
-
-# Cleanup temporary installation files
 rm -rf /tmp/pgbadger.tar.gz /tmp/pgbadger-13.2
-echo "pgBadger installation completed successfully!"
 
-
-# --- Step 3.6: Download and Install pg_profile ---
+# --- Step 7: Download and Install pg_profile ---
 echo "Downloading pg_profile v4.11..."
 wget https://github.com/zubkov-andrei/pg_profile/releases/download/4.11/pg_profile--4.11.tar.gz -O /tmp/pg_profile--4.11.tar.gz
 
-echo "Extracting pg_profile to PostgreSQL ${PG_VERSION} extension directory..."
-sudo tar xzf /tmp/pg_profile--4.11.tar.gz --directory /usr/pgsql-${PG_VERSION}/share/extension
+echo "Extracting pg_profile to PostgreSQL ${PG_MAJOR} extension directory..."
+sudo tar xzf /tmp/pg_profile--4.11.tar.gz --directory /usr/pgsql-${PG_MAJOR}/share/extension
 
-echo "Cleaning up pg_profile temporary file..."
+# Clean up
 rm -f /tmp/pg_profile--4.11.tar.gz
+
+echo "================================================================="
+echo " Environment setup completed successfully!"
+echo "================================================================="

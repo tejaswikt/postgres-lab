@@ -1,7 +1,10 @@
 # config/vagrant.yml
 shared:
   box: "oraclebase/oracle-9"
-  postgres_version: "17"  # Set the version of PostgreSQL to install (e.g., 16, 17)
+  # PostgreSQL Engine Version Setup:
+  # - Pass a Major version (e.g., "16", "17") to automatically install the latest available minor patch.
+  # - Pass a specific Minor version (e.g., "16.1", "16.3", "17.1") to lock the environment down.
+  postgres_version: "16"  # Set the version of PostgreSQL to install (e.g., 16, 17)
 
 nodes:
   - name: "postgres-lab001"
