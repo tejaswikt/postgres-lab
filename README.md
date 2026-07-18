@@ -11,10 +11,14 @@ Following infrastructure-as-code (IaC) best practices inspired by ORACLE-BASE, t
 The setup splits configuration and execution into separate, clean domains:
 
 ```text
-postgres-lab/
+postgres-labs-pt/
+├── .gitignore               # Excludes local Vagrant cache/state files
+├── Vagrantfile              # The main orchestration engine
+├── README.md                # The instructions for your readers
 ├── config/
-│   └── vagrant.yml       # Host & Software configurations (declarative)
-├── scripts/
-│   └── provision.sh      # Shell script to automate OS and DB provisioning
-├── Vagrantfile           # Ruby engine parsing YAML & launching VirtualBox VMs
-└── README.md             # Project documentation (this file)
+│   └── vagrant.yml          # Example node configurations
+└── scripts/
+    ├── 00-provision.sh      # OS & Package installation
+    ├── 01-setup_config_file.sh # Modular conf.d & extension preloads
+    ├── 02-deploy_new_lab.sh # Database schema, seeds, & extension activation
+    └── 03-setup_config_file.sql # The 10-million row dataset
