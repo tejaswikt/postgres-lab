@@ -1,0 +1,10 @@
+# config/vagrant.yml
+shared:
+  box: "oraclebase/oracle-9"
+  postgres_version: "17"  # Set the version of PostgreSQL to install (e.g., 16, 17)
+
+nodes:
+  - name: "postgres-lab001"
+    ip: "192.168.56.170"
+    mem: 8096
+    cpu: 4
