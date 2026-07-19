@@ -29,7 +29,7 @@ psql -d postgres -c "CREATE DATABASE creditcards;"
 
 echo "=== STEP 4: Executing schema definition and seeding workload ==="
 
-SQL_FILE="03-setup_config_file.sql"
+SQL_FILE="03-setup_schema.sql"
 
 # 1. Resolve path to SQL file dynamically
 if [ -f "/vagrant_scripts/${SQL_FILE}" ]; then
