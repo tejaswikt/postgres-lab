@@ -33,6 +33,16 @@ echo "========================="
 mkdir -p "${CONF_D_DIR}"
 cd "${CONF_D_DIR}"
 
+# Append the include_dir statement if it doesn't already exist
+if ! grep -q "include_dir = 'conf.d'" "${CONFIG_FILE}"; then
+    echo "" >> "${CONFIG_FILE}"
+    echo "# Include custom configuration files from conf.d directory" >> "${CONFIG_FILE}"
+    echo "include_dir = 'conf.d'" >> "${CONFIG_FILE}"
+    echo "Added 'include_dir' directive to ${CONFIG_FILE}"
+else
+    echo "'include_dir' directive already exists in ${CONFIG_FILE}. Skipping."
+fi
+
 echo "=== 1. Emptying/Creating configuration files ==="
 > 00-extensions.conf
 > 01-performance.conf
